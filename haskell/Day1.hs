@@ -23,5 +23,5 @@ main :: IO ()
 main = do
     path <- head <$> getArgs
     input <- elves <$> readFile path
-    putStrLn $ mconcat ["part 1:", show . part1 $ input]
-    putStrLn $ mconcat ["part 2:", show . part2 $ input]
+    putStrLn $ mconcat ["part 1: ", show . part1 $ input]
+    putStrLn $ mconcat ["part 2: ", show . part2 $ input]

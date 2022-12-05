@@ -62,7 +62,7 @@ play (Paper   ,     Rock) = You
 play (Paper   , Scissors) = Me
 play (Scissors,    Paper) = You
 play (Scissors,     Rock) = Me
-play otherwise            = Cat
+play _                    = Cat
 
 -- given their move and desired outcome, what move do we make?
 hint :: (Move, Winner) -> Move

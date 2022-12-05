@@ -14,8 +14,8 @@ import System.Environment (getArgs)
 -- i am so not doing bit math anymore
 priority :: Char -> Int
 priority = \case
-    c | c >= 'A' && c <= 'Z' -> 27 + ord c - ord 'A'
-    c | c >= 'a' && c <= 'z' -> 1  + ord c - ord 'a'
+    c | isAsciiUpper -> ord c - ord 'A'
+    c | isAsciiLower -> 1 + ord c - ord 'a'
 
 -- split a list in half, even on
 -- odd lists because trust issues 😌

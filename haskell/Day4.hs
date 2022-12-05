@@ -3,7 +3,6 @@
 build-depends: base, parsec
 ghc-options: -main-is Day4.main
 -}
-{-# LANGUAGE LambdaCase #-}
 module Day4 where
 import Data.Char (isDigit)
 import Data.Either (either)

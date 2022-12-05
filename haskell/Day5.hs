@@ -3,10 +3,10 @@
 build-depends: base, parsec, vector
 ghc-options: -main-is Day5.main
 -}
-{-# LANGUAGE LambdaCase #-}
 module Day5 where
 
 import Control.Monad (forM_)
+import Data.Functor (($>))
 import Data.List (transpose)
 import Data.Maybe (isJust)
 import System.Environment (getArgs)
@@ -23,7 +23,7 @@ crate :: Parser Char
 crate = between (char '[') (char ']') upper
 
 maybeCrate :: Parser (Maybe Char)
-maybeCrate = string "   " *> pure Nothing <|> Just <$> crate
+maybeCrate = string "   " $> Nothing <|> Just <$> crate
 
 crates :: Parser [Maybe Char]
 crates = sepBy1 maybeCrate (char ' ')
@@ -89,5 +89,5 @@ main :: IO ()
 main = do
   path <- head <$> getArgs
   input <- readFile path
-  putStrLn $ mconcat ["part 1: ", runMover move1 $ input]
-  putStrLn $ mconcat ["part 2: ", runMover move2 $ input]
+  putStrLn $ mconcat ["part 1: ", runMover move1 input]
+  putStrLn $ mconcat ["part 2: ", runMover move2 input]

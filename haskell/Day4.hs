@@ -7,7 +7,7 @@ ghc-options: -main-is Day4.main
 module Day4 where
 import Data.Char (isDigit)
 import Data.Either (either)
-import Text.Parsec hiding (try)
+import Text.Parsec
 import Text.Parsec.Error
 import System.Environment (getArgs)
 

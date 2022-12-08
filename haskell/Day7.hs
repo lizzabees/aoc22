@@ -120,6 +120,11 @@ goRoot (Dir kids, []) = (Dir kids, [])
 goRoot (Dir kids, bs) = goRoot $ shiftUp kids bs
 goRoot (File   _,  _) = error "cannot navigate files"
 
+navigate :: Move -> Zipper -> Zipper
+navigate  GoRoot    = goRoot
+navigate  GoUp      = goUp
+navigate (GoDown p) = goDown p
+
 insert :: String -> VFS -> Zipper -> Zipper
 insert     _   _ (File   _,  _) = error "cannot insert into file"
 insert  name kid (Dir kids, bs) =
@@ -127,7 +132,12 @@ insert  name kid (Dir kids, bs) =
      in (Dir kids', bs)
 
 runInput :: [Input] -> Zipper
-runInput = undefined
+runInput = foldr go (Dir [], [])
+    where go :: Input -> Zipper -> Zipper
+          go (InLs      ) z = z
+          go (InCd     p) z = foldr navigate z $ moves p
+          go (InDir    n) z = insert n (Dir  []) z
+          go (InFile s n) z = insert n (File  s) z
 
 main :: IO ()
 main = do

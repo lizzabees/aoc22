@@ -15,8 +15,8 @@ data Path = Abs [String]
 
 type Entries = [(String,VFS)]
 
-data VFS = Dir  String Entries
-         | File String Int
+data VFS = Dir  Entries
+         | File Int
          deriving(Eq,Ord,Show)
 
 -- movement inside the VFS
@@ -37,7 +37,7 @@ moves ps = go ps []
 -- the move we made to get here. this should
 -- be all we need to reconstruct the full tree
 -- once done processing commands
-data Crumb = Crumb Entries Move
+data Crumb = Crumb String Entries Move
     deriving (Eq,Ord,Show)
 
 -- our currently focused segment
@@ -96,6 +96,39 @@ input = line `manyTill` eof
           file = do { InFile <$> size <*> fsname      }
           size = do { read <$> many1 digit <* char ' '}
           
+-- execution
+goDown :: String -> Zipper -> Zipper
+goDown _    (File   _,  _) = error "cannot navigate files!"
+goDown name (Dir kids, bs)  =
+    let (dir, kids') = lookOut name kids
+     in (dir, Crumb name kids' (GoDown name):bs)
+
+-- utility for unwinding zipper
+shiftUp :: Entries -> [Crumb] -> Zipper
+shiftUp    _ [                      ] = error "cannot go up from empty path"
+shiftUp kids ((Crumb cwd aunts _):bs) =
+    let aunts' = mayInsert (cwd, Dir kids) aunts
+     in (Dir aunts', bs)
+
+goUp :: Zipper -> Zipper
+goUp (Dir    _, []) = error "cannot go up from root"
+goUp (File   _,  _) = error "cannot navigate files"
+goUp (Dir kids, bs) = shiftUp kids bs
+
+goRoot :: Zipper -> Zipper
+goRoot (Dir kids, []) = (Dir kids, [])
+goRoot (Dir kids, bs) = goRoot $ shiftUp kids bs
+goRoot (File   _,  _) = error "cannot navigate files"
+
+insert :: String -> VFS -> Zipper -> Zipper
+insert     _   _ (File   _,  _) = error "cannot insert into file"
+insert  name kid (Dir kids, bs) =
+    let kids' = mayInsert (name,kid) kids
+     in (Dir kids', bs)
+
+runInput :: [Input] -> Zipper
+runInput = undefined
+
 main :: IO ()
 main = do
     path <- head <$> getArgs

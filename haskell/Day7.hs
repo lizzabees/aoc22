@@ -6,6 +6,8 @@ ghc-options: -O2
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 import Control.Monad (forM_)
+import Data.List (foldl')
+import Debug.Trace (trace)
 import Text.Parsec
 import System.Environment (getArgs)
 
@@ -131,17 +133,25 @@ insert  name kid (Dir kids, bs) =
     let kids' = mayInsert (name,kid) kids
      in (Dir kids', bs)
 
-runInput :: [Input] -> Zipper
-runInput = foldr go (Dir [], [])
+runInput :: [Input] -> VFS
+runInput = fst . goRoot . foldl' (flip go) (Dir [], [])
     where go :: Input -> Zipper -> Zipper
           go (InLs      ) z = z
           go (InCd     p) z = foldr navigate z $ moves p
           go (InDir    n) z = insert n (Dir  []) z
           go (InFile s n) z = insert n (File  s) z
 
+
+part1 :: VFS -> Int
+part1 = sum . filter (< 1000) . sizes []
+    where sizes :: [Int] -> VFS -> [Int]
+          sizes acc (File sz) = sz:acc
+          sizes acc (Dir  []) = acc
+          sizes acc (Dir  xs) = foldl' sizes acc $ map snd xs
+
 main :: IO ()
 main = do
     path <- head <$> getArgs
     term <- runParse input <$> readFile path
-    forM_ term $ putStrLn . show
-    putStrLn $ "part 1: " <> path
+    let vfs = runInput term
+    putStrLn $ mconcat ["part 1: ", show $ part1 vfs]

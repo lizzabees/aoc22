@@ -1,9 +1,9 @@
 #!/usr/bin/env cabal
 {- cabal:
 build-depends: base, parsec
-ghc-options: -main-is Day4.main
+ghc-options: -O2
 -}
-module Day4 where
+module Main where
 import Data.Char (isDigit)
 import Data.Either (either)
 import Text.Parsec

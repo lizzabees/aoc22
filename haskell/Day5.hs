@@ -1,10 +1,9 @@
 #!/usr/bin/env cabal
 {- cabal:
 build-depends: base, parsec, vector
-ghc-options: -main-is Day5.main
+ghc-options: -O2
 -}
-module Day5 where
-
+module Main where
 import Control.Monad (forM_)
 import Data.Functor (($>))
 import Data.List (transpose)

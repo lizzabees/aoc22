@@ -1,9 +1,9 @@
 #!/usr/bin/env cabal
 {- cabal:
 build-depends: base
-ghc-options: -main-is Day2.main
+ghc-options: -main-is Main.main -O2
 -}
-module Day2 where
+module Main where
 import System.Environment (getArgs)
 
 class Scoring a where
@@ -51,7 +51,7 @@ parseGame line         = error $ "invalid move line: " <> line
 
 -- in part two we parse "$you $outcome"
 parseCheat :: String -> (Move, Winner)
-parseCheat [you,' ',hint] = (parseYou you, parseHint hint)
+parseCheat [you,' ',out] = (parseYou you, parseHint out)
 parseCheat line           = error $ "invalid cheat line: " <> line
 
 -- there's probably a way i could code golf this
@@ -84,7 +84,7 @@ totalScore game = move game + winner game
 -- there is probably some category theory friendly way
 -- but hoogle says nothing to me. Bifunctor maybe?
 slick :: ((a, b) -> c) -> (a, b) -> (a, c)
-slick fn tup@(x, y) = (x, fn tup)
+slick fn tup@(x, _) = (x, fn tup)
 
 part1 :: [String] -> Int
 part1 = foldr ((+) . totalScore . parseGame) 0

@@ -1,0 +1,45 @@
+cabal-version:      3.0
+name:               aoc22
+version:            0.1.0.0
+license:            NONE
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+common base
+    build-depends:    base ^>=4.17.0.0
+    default-language: Haskell2010
+    ghc-options:      -Wall -O2
+    hs-source-dirs:   haskell
+
+executable day1
+    import:           base
+    main-is:          Day1.hs
+    build-depends:    split
+
+executable day2
+    import:           base
+    main-is:          Day2.hs
+
+executable day3
+    import:           base
+    main-is:          Day3.hs
+    build-depends:    split
+
+executable day4
+    import:           base
+    main-is:          Day4.hs
+    build-depends:    parsec
+
+executable day5
+    import:           base
+    main-is:          Day5.hs
+    build-depends:    parsec, vector
+
+executable day6
+    import:           base
+    main-is:          Day6.hs
+
+executable day7
+    import:           base
+    main-is:          Day7.hs
+    build-depends:    mtl, parsec, split

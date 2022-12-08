@@ -2,9 +2,9 @@
 {- cabal:
 build-depends: base
              , split
-ghc-options: -main-is Day1.main
+ghc-options: -O2
 -}
-module Day1 where
+module Main where
 import Data.List (sortOn)
 import Data.List.Split (splitOn)
 import Data.Ord (Down(..))

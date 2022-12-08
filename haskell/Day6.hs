@@ -1,9 +1,9 @@
 #!/usr/bin/env cabal
 {- cabal:
 build-depends: base
-ghc-options: -main-is Day6.main
+ghc-options: -O2
 -}
-module Day6 where
+module Main where
 import Data.List (tails, transpose)
 import System.Environment (getArgs)
 

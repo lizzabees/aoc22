@@ -1,11 +1,11 @@
 #!/usr/bin/env cabal
 {- cabal:
 build-depends: base, split
-ghc-options: -main-is Day3.main
+ghc-options: -O2
 -}
 {-# LANGUAGE LambdaCase #-}
-module Day3 where
-import Data.Char (ord)
+module Main where
+import Data.Char (isAsciiUpper,isAsciiLower,ord)
 import Data.List (intersect)
 import Data.List.Split (chunksOf)
 import System.Environment (getArgs)
@@ -14,8 +14,8 @@ import System.Environment (getArgs)
 -- i am so not doing bit math anymore
 priority :: Char -> Int
 priority = \case
-    c | isAsciiUpper -> ord c - ord 'A'
-    c | isAsciiLower -> 1 + ord c - ord 'a'
+    c | isAsciiUpper c -> ord c - ord 'A'
+    c | isAsciiLower c -> 1 + ord c - ord 'a'
 
 -- split a list in half, even on
 -- odd lists because trust issues 😌

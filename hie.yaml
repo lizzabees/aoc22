@@ -1,0 +1,9 @@
+cradle:
+  cabal:
+  - { path: haskell/Day1.hs, component: 'exe:day1' }
+  - { path: haskell/Day2.hs, component: 'exe:day2' }
+  - { path: haskell/Day3.hs, component: 'exe:day3' }
+  - { path: haskell/Day4.hs, component: 'exe:day4' }
+  - { path: haskell/Day5.hs, component: 'exe:day5' }
+  - { path: haskell/Day6.hs, component: 'exe:day6' }
+  - { path: haskell/Day7.hs, component: 'exe:day7' }

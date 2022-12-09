@@ -42,4 +42,4 @@ executable day6
 executable day7
     import:           base
     main-is:          Day7.hs
-    build-depends:    mtl, parsec, split
+    build-depends:    parsec

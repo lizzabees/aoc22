@@ -1,157 +1,146 @@
 #!/usr/bin/env cabal
 {- cabal:
-build-depends: base, parsec, split
+build-depends: base, parsec
 ghc-options: -O2
 -}
+{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 import Control.Monad (forM_)
+import Data.Functor (void)
 import Data.List (foldl')
-import Debug.Trace (trace)
-import Text.Parsec
+import Prelude hiding (lookup, unzip)
 import System.Environment (getArgs)
+import Text.Parsec hiding (parse)
+
+-- VFS basics
+type Entry = (String,VFS)
+
+data VFS = Dir  String [Entry]
+         | File String Int
+         deriving(Eq,Ord,Show)
 
 data Path = Abs [String]
           | Rel [String]
           deriving(Eq,Ord,Show)
 
-type Entries = [(String,VFS)]
+-- Zippers
+data Crumb = Crumb
+    { crName :: String  -- parent's name
+    , crSibs :: [Entry] -- sibling nodes
+    } deriving (Eq, Ord, Show)
 
-data VFS = Dir  Entries
-         | File Int
-         deriving(Eq,Ord,Show)
-
--- movement inside the VFS
-data Move = GoRoot | GoUp | GoDown String
-    deriving (Eq,Ord,Show)
-
--- given a path, what moves must we make to get there
-moves :: Path -> [Move]
-moves ps = go ps []
-    where go :: Path -> [Move] -> [Move]
-          go (Abs       ps ) ms = go (Rel ps) ( GoRoot   :ms)
-          go (Rel ("..":ps)) ms = go (Rel ps) ( GoUp     :ms)
-          go (Rel (p   :ps)) ms = go (Rel ps) ((GoDown p):ms)
-          go (Rel [       ]) ms = reverse ms
-
--- our path so far: the previous VFS tree
--- *without* the path we took, as well as
--- the move we made to get here. this should
--- be all we need to reconstruct the full tree
--- once done processing commands
-data Crumb = Crumb String Entries Move
-    deriving (Eq,Ord,Show)
-
--- our currently focused segment
--- of the VFS and our trail of crumbs
 type Zipper = (VFS, [Crumb])
 
--- lookup but we remove the found element
-lookOut :: forall a b. (Eq a,Show a) => a -> [(a,b)] -> (b, [(a,b)])
-lookOut key xs = go xs []
-    where go :: [(a,b)] -> [(a,b)] -> (b, [(a,b)])
-          go [        ]  _ = error $ "missing key " <> show key
-          go ((k,v):xs) ys | k == key = (v, (reverse ys) ++ xs)
-          go (x    :xs) ys            = go xs (x:ys)
+-- pretty print the filesystem
+prettyVfs :: VFS -> IO ()
+prettyVfs = go 0
+    where go :: Int -> VFS -> IO ()
+          go i (Dir name kids) = do
+              putStr $ replicate i ' '
+              putStr "dir "
+              putStrLn name
+              forM_ kids (go (i+2) . snd)
+          go i (File name size) = do
+              putStr $ replicate i ' '
+              putStr $ show size
+              putChar ' '
+              putStrLn name
 
--- insert only if not already existing
--- (we don't wanna whipe out a dir we have
--- already visited)
-mayInsert :: forall a b. (Eq a,Show a) => (a,b) -> [(a,b)] -> [(a,b)]
-mayInsert (key,val) xs = go xs []
-    where go :: [(a,b)] -> [(a,b)] -> [(a,b)]
-          go [] ys  = reverse $ (key,val):ys
-          go ((k,v):xs) ys | k == key = (reverse ys) ++ ((k,v):xs)
-          go (x    :xs) ys            = go xs (x:ys)
-
--- parsing
-type Parser a = Parsec String () a
-
-runParse :: Parser a -> String -> a
-runParse p = either (error . show)  id . parse p ""
-
-data Input = InCd Path
-           | InLs
-           | InDir String
-           | InFile Int String
-           deriving(Eq,Ord,Show)
-         
-fsname :: Parser String
-fsname = many1 (alphaNum <|> oneOf "_-.")
-
-path :: Parser Path
-path = do
-    pre <- optionMaybe (char '/')
-    parts <- sepEndBy fsname $ char '/'
-    return $ case pre of 
-               Just _  -> Abs parts
-               Nothing -> Rel parts
-
-input :: Parser [Input]
-input = line `manyTill` eof
-    where line = (cmd <|> out) <* newline
-          out  = dir <|> file
-          cmd  = do { string "$ "  ; cd <|> ls        }
-          cd   = do { string "cd " ; InCd <$> path    }
-          ls   = do { string "ls"  ; return InLs      }
-          dir  = do { string "dir "; InDir <$> fsname }
-          file = do { InFile <$> size <*> fsname      }
-          size = do { read <$> many1 digit <* char ' '}
-          
--- execution
-goDown :: String -> Zipper -> Zipper
-goDown _    (File   _,  _) = error "cannot navigate files!"
-goDown name (Dir kids, bs)  =
-    let (dir, kids') = lookOut name kids
-     in (dir, Crumb name kids' (GoDown name):bs)
-
--- utility for unwinding zipper
-shiftUp :: Entries -> [Crumb] -> Zipper
-shiftUp    _ [                      ] = error "cannot go up from empty path"
-shiftUp kids ((Crumb cwd aunts _):bs) =
-    let aunts' = mayInsert (cwd, Dir kids) aunts
-     in (Dir aunts', bs)
+-- helper to unzip one level
+unzip :: Zipper -> Zipper
+unzip (File {   },  _) = error "cannot unzip files"
+unzip (Dir  {   }, []) = error "cannot unzip empty zipper"
+unzip (Dir  "/" _,  _) = error "cannot unzip root zipper"
+unzip (Dir n es, Crumb{..}:cs) =
+    let sibs = insert n (Dir n es) crSibs
+     in (Dir crName sibs, cs)
 
 goUp :: Zipper -> Zipper
-goUp (Dir    _, []) = error "cannot go up from root"
-goUp (File   _,  _) = error "cannot navigate files"
-goUp (Dir kids, bs) = shiftUp kids bs
+goUp = unzip
 
 goRoot :: Zipper -> Zipper
-goRoot (Dir kids, []) = (Dir kids, [])
-goRoot (Dir kids, bs) = goRoot $ shiftUp kids bs
-goRoot (File   _,  _) = error "cannot navigate files"
+goRoot z@(Dir "/" _, _) = z
+goRoot z = goUp z
 
-navigate :: Move -> Zipper -> Zipper
-navigate  GoRoot    = goRoot
-navigate  GoUp      = goUp
-navigate (GoDown p) = goDown p
+goDown :: String -> Zipper -> Zipper
+goDown ".." z              = goUp z
+goDown _    (File {}, _)   = error "cannot zip down file"
+goDown p    (Dir n es, cs) =
+    case lookup p es of
+      (File{}, _) -> error "cannot zip down file"
+      (fs,  sibs) -> (fs, Crumb n sibs:cs)
 
-insert :: String -> VFS -> Zipper -> Zipper
-insert     _   _ (File   _,  _) = error "cannot insert into file"
-insert  name kid (Dir kids, bs) =
-    let kids' = mayInsert (name,kid) kids
-     in (Dir kids', bs)
+fsAdd :: VFS -> Zipper -> Zipper
+fsAdd f@(Dir  n _) (Dir  p sibs, cs) = (Dir p (insert n f sibs), cs)
+fsAdd f@(File n _) (Dir  p sibs, cs) = (Dir p (insert n f sibs), cs)
+fsAdd _            (File {    },  _) = error "cannot insert into file" 
 
-runInput :: [Input] -> VFS
-runInput = fst . goRoot . foldl' (flip go) (Dir [], [])
-    where go :: Input -> Zipper -> Zipper
-          go (InLs      ) z = z
-          go (InCd     p) z = foldr navigate z $ moves p
-          go (InDir    n) z = insert n (Dir  []) z
-          go (InFile s n) z = insert n (File  s) z
+navigate :: Path -> (Zipper -> Zipper)
+navigate (Abs ps) = foldl' (.) id $ goRoot:map goDown ps
+navigate (Rel ps) = foldl' (.) id $ map goDown ps
 
+-- parsing
+type Parser a = Parsec String Zipper a
 
-part1 :: VFS -> Int
-part1 = sum . filter (< 1000) . sizes []
-    where sizes :: [Int] -> VFS -> [Int]
-          sizes acc (File sz) = sz:acc
-          sizes acc (Dir  []) = acc
-          sizes acc (Dir  xs) = foldl' sizes acc $ map snd xs
+parse :: Parser a -> SourceName -> String -> a
+parse p s = either (error . show) id . runParser p root s
+    where root :: Zipper
+          root = (Dir "/" [], [])
+
+parseFile :: Parser a -> String -> IO a
+parseFile p n = parse p n <$> readFile n
+
+-- parse a terminal session returning the zipper
+-- that we build up as we go
+terminal :: Parser Zipper
+terminal = manyTill line eof >> getState
+    where line = (cmd <|> out) <* newline
+          out  = dir <|> file
+          cmd  = string "$ " *> (cd <|> ls)
+          dir  = do
+              void $ string "dir "
+              n <- fsname
+              modifyState $ fsAdd (Dir n [])
+          file = do
+              size <- read <$> many1 digit
+              void $ char ' '
+              name <- fsname
+              modifyState $ fsAdd (File name size)
+          cd   = do 
+              void $ string "cd "
+              p <- path
+              modifyState $ navigate p
+          ls   = void $ string "ls"
+          path = do
+              pre   <- optionMaybe $ char '/'
+              parts <- sepEndBy fsname $ char '/'
+              return $ case pre of
+                         Just _  -> Abs parts
+                         Nothing -> Rel parts
+          fsname = many1 $ alphaNum <|> oneOf "_-."
+
+-- simple a-list maps but when we insert we do not replace
+-- existing keys, and when we lookup, we remove the key
+-- from the map and return the point in which we split it
+type Map k v = [(k,v)]
+
+lookup :: forall k v. Eq k => k -> Map k v -> (v, Map k v)
+lookup k = flip go []
+    where go :: Map k v -> Map k v -> (v, Map k v)
+          go [        ]  _          = error "map key not found"
+          go ((x,v):xs) ys | x == k = (v, reverse ys ++ xs)
+          go ( x   :xs) ys          = go xs $ x:ys
+
+insert :: forall k v. Eq k => k -> v -> Map k v -> Map k v
+insert k v = flip go []
+    where go :: Map k v -> Map k v -> Map k v
+          go [        ] ys          = reverse $ (k,v):ys
+          go ((x,_):xs) ys | x == k = reverse ys ++ xs
+          go ( x   :xs) ys          = go xs $ x:ys
 
 main :: IO ()
 main = do
     path <- head <$> getArgs
-    term <- runParse input <$> readFile path
-    let vfs = runInput term
-    putStrLn $ mconcat ["part 1: ", show $ part1 vfs]
+    vfs <- fst . goRoot <$> parseFile terminal path
+    prettyVfs vfs

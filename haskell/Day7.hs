@@ -5,6 +5,7 @@ ghc-options: -O2
 -}
 {-# LANGUAGE DeriveTraversable   #-}
 {-# LANGUAGE KindSignatures      #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeFamilies        #-}
@@ -70,19 +71,25 @@ insert f = flip go []
 -- ZIPPERS
 -- parent name and our sibling nodes
 data Crumb a = Crumb String [Vfs a]
+    deriving(Eq,Ord,Show)
 
 -- current focus and path travelled
 type Zipper a = (Vfs a, [Crumb a])
 
 -- unzip one layer
-unzip :: Zipper a -> Zipper a
-unzip (d@(Dir _ _), Crumb par sibs:cs) =
+untooth :: Zipper a -> Zipper a
+untooth (d@(Dir _ _), Crumb par sibs:cs) =
     let sibs' = insert d sibs
      in (Dir par sibs', cs)
-unzip _ = error "unzip: how did you find yourself here?"
+untooth _ = error "untooth: how did you find yourself here?"
+
+unzip :: Zipper a -> Zipper a
+unzip   (d,  []) = (d, [])
+unzip z@(_, _:_) = unzip . untooth $ z
+unzip _          = error "unzip: bless your heart"
 
 goUp :: Zipper a -> Zipper a
-goUp = unzip
+goUp = untooth
 
 goRoot :: Zipper a -> Zipper a
 goRoot z@(Dir "/" _, _) = z
@@ -124,7 +131,7 @@ parse p n = either (error . show) id . runParser p root n
 
 -- parse a file down to a vfs , bailing on error
 parseFile :: String -> Parser (Zipper a) b -> IO (Vfs a)
-parseFile n p = fst . goRoot . parse p n <$> readFile n
+parseFile n p = fst . unzip . parse p n <$> readFile n
 
 terminal :: Parser (Zipper a) a 
 terminal = manyTill line eof >> getState
@@ -153,41 +160,31 @@ terminal = manyTill line eof >> getState
                          Nothing -> Rel parts
           fsname = many1 $ alphaNum <|> oneOf "_-."
 
-dirSizes :: Vfs Int -> [(String,Int)]
+dirSizes :: Vfs Int -> [Int]
 dirSizes = execWriter . cataA go
-    where go :: VfsF Int (Writer [(String,Int)] Int) -> Writer [(String,Int)] Int
-          go (DirF d kids) = do
+    where go :: VfsF Int (Writer [Int] Int) -> Writer [Int] Int
+          go (DirF _ kids) = do
               sz <- sum <$> sequence kids
-              tell [(d,sz)]
+              tell [sz]
               return sz
           go (FileF _ sz) = return sz
 
-test :: Vfs Int
-test = Dir "/"
-    [ Dir "a"
-        [ Dir "e"
-            [ File "i" 584
-            ]
-        , File "f" 29116
-        , File "g" 2557
-        , File "h.lst" 62596
-        ]
-    , File "b.txt" 14848514
-    , File "c.dat" 8504156
-    , Dir "d"
-        [ File "j" 4060174
-        , File "d.log" 8033020
-        , File "d.ext" 5626152
-        , File "k" 7214296
-        ]
-    ]
+fsSize :: Vfs Int -> Int
+fsSize = cata $ \case
+    DirF  _ kids -> sum kids
+    FileF _ sz   -> sz
 
--- part1 :: Vfs Int -> Int
--- part1 = sum . filter (<= 100000 . snd) . dirSizes
+part1 :: Vfs Int -> Int
+part1 = sum . filter (<= 100000) . dirSizes
+
+part2 :: Vfs Int -> Int
+part2 f = undefined
+    where targSize = 30000000
+          currSize = fsSize f
+          freeSize = currSize - targSize
 
 main :: IO ()
 main = do
     path <- head <$> getArgs
     vfs <- parseFile path terminal
-    return ()
-    -- putStrLn $ mconcat ["test: ", ]
+    putStrLn $ mconcat ["part 1: ", show $ part1 vfs]

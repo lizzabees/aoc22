@@ -178,13 +178,16 @@ part1 :: Vfs Int -> Int
 part1 = sum . filter (<= 100000) . dirSizes
 
 part2 :: Vfs Int -> Int
-part2 f = undefined
-    where targSize = 30000000
-          currSize = fsSize f
-          freeSize = currSize - targSize
+part2 root = minimum . filter (>= mustFree) . dirSizes $ root
+    where fullSize = 70000000
+          targFree = 30000000
+          currSize = fsSize root
+          currFree = fullSize - currSize
+          mustFree = targFree - currFree
 
 main :: IO ()
 main = do
     path <- head <$> getArgs
     vfs <- parseFile path terminal
     putStrLn $ mconcat ["part 1: ", show $ part1 vfs]
+    putStrLn $ mconcat ["part 1: ", show $ part2 vfs]

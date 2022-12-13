@@ -1,6 +1,6 @@
 #!/usr/bin/env cabal
 {- cabal:
-build-depends: base, parsec
+build-depends: base, mtl, parsec, recursion-schemes
 ghc-options: -O2
 -}
 {-# LANGUAGE DeriveTraversable   #-}

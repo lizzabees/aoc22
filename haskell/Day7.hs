@@ -4,7 +4,6 @@ build-depends: base, parsec
 ghc-options: -O2
 -}
 {-# LANGUAGE DeriveTraversable   #-}
-{-# LANGUAGE KindSignatures      #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
@@ -35,21 +34,6 @@ data Path = Abs [String]
 vfsName :: Vfs a -> String
 vfsName (Dir  n _) = n
 vfsName (File n _) = n
-
--- pretty print the filesystem
-prettyVfs :: Vfs a -> IO ()
-prettyVfs = go 0
-    where go :: Int -> Vfs a -> IO ()
-          go i (Dir name kids) = do
-              putStr $ replicate i ' '
-              putStr "dir "
-              putStrLn name
-              forM_ kids $ go (i+2)
-          go i (File name size) = do
-              putStr $ replicate i ' '
-              putStr $ show size
-              putChar ' '
-              putStrLn name
 
 -- UTILITIES
 -- lookup child and remove from entries

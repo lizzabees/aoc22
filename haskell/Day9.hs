@@ -7,7 +7,9 @@ ghc-options: -O2
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 import Control.Monad.State
+import Data.Function (on)
 import Data.Functor (($>))
+import Data.List (scanl')
 import System.Environment (getArgs)
 import Text.Parsec hiding (State,parse)
 import qualified Data.Set as S
@@ -22,16 +24,9 @@ type Delta = Point
 delta :: Point -> Point -> Delta
 delta (hx,hy) (tx,ty) = (hx-tx, hy-ty)
 
-touching :: Delta -> Bool
-touching (dx,dy) = abs dx <= 1 && abs dy <= 1
-
-sameRow :: Delta -> Bool
-sameRow (_,0) = True
-sameRow _     = False
-
-sameCol :: Delta -> Bool
-sameCol (0,_) = True
-sameCol _    = False
+-- ngl i cribbed this one. i didn't know about `on`
+dist :: Delta -> Int
+dist (x,y) = (max `on` abs) x y
 
 -- move the head given a dir
 move :: Dir -> Point -> Point
@@ -42,18 +37,9 @@ move L (x,y) = (x-1,y  )
 
 -- where does tail move given the head position
 follow :: Point -> Point -> Point
-follow h t@(tx,ty) = go $ delta h t
-    where go :: Delta -> Point
-          go d         | touching d = t
-          go d@(dx, _) | sameRow d && dx < 0 = (tx-1,ty)
-          go d@(dx, _) | sameRow d && dx > 0 = (tx+1,ty)
-          go d@(_ ,dy) | sameCol d && dy < 0 = (tx,ty-1)
-          go d@(_ ,dy) | sameCol d && dy < 0 = (tx,ty+1)
-          go   (dx,dy) | abs dx > abs dy && dx < 0 = (tx-1,ty+dy)
-          go   (dx,dy) | abs dx > abs dy && dx > 0 = (tx+1,ty+dy)
-          go   (dx,dy) | dy < 0 = (tx+dx,ty-1)
-          go   (dx,dy) | dy > 0 = (tx+dx,ty+1)
-          go _                  = error "move: yikes!"
+follow h t@(tx,ty)
+  = let d@(dx,dy) = delta h t
+     in if dist d <= 1 then t else (tx + signum dx, ty + signum dy)
 
 -- STATE - PART1
 data Rope1 = Rope1
@@ -66,9 +52,9 @@ data Rope1 = Rope1
 exec1 :: [Dir] -> Rope1
 exec1 = flip execState start1 . go
     where start1 = Rope1
-            (S.singleton (0,0))
-            (0,0)
-            (0,0)
+            (S.singleton (0,0)) -- visited
+            (0,0)               -- head 
+            (0,0)               -- tail
           go :: [Dir] -> State Rope1 ()
           go [    ] = return ()
           go (m:ms) = do
@@ -84,34 +70,32 @@ exec1 = flip execState start1 . go
 -- STATE - PART2
 data Rope2 = Rope2
     { r2Moved :: S.Set Point    -- coords visited by the tail
-    , r2Head  :: Point          -- still track the head separate, for reasons
+    , r2Head  :: Point
     , r2Knots :: [Point]        -- now we have to track 9 extra ropes
-    , r2Tail  :: Point          -- we keep the tail seperate too for Reasons(TM)
     } deriving (Eq,Ord,Show)
 
 -- in part 2 we track multiple knots in the rope, but
 -- we still only care what sites the tail has visted
 -- we can't just foldl1 because we still have to persist
--- the entire changed state
+-- the entire changed state. also there is some wasted
+-- effort here. 2 tears in a bucket ...
 exec2 :: [Dir] -> Rope2
-exec2 = flip execState start2 . go
+exec2 = flip execState start2 . go 
     where start2 = Rope2
-            (S.singleton (0,0))
-            (0,0)
-            (replicate 8 (0,0))
-            (0,0)
+            (S.singleton (0,0)) -- visited
+            (0,0)               -- head
+            (replicate 9 (0,0)) -- tail
           go :: [Dir] -> State Rope2 ()
           go [    ] = return ()
-          go (x:xs) = do
+          go (m:ms) = do
               Rope2{..} <- get
-              let h        = move x r2Head
-              let (ks, t') = weird follow h r2Tail r2Knots
-              let m        = if t' == r2Tail
-                                then r2Moved
-                                else S.insert t' r2Moved
-              put $ Rope2 m h ks t'
-              go xs
-
+              let h      = move m r2Head
+              let (_:xs) = scanl' follow h r2Knots
+              let t      = last xs
+              let s      = S.insert t r2Moved
+              put $ Rope2 s h xs
+              go ms
+--
 -- PARSING
 type Parser a = Parsec String [Dir] a
 
@@ -137,46 +121,7 @@ moves = manyTill line eof >> fmap reverse getState
                        , char 'L' $> L
                        ]
 
--- UTILITIES
-
--- it's not a fold and it's not a scan, it's some cursed
--- thing that combinatronics has probably happily ignored
--- takes the scan fun, head, tail, list, returns the
--- tansformed list and transformed tail. why? reasons.
-weird :: forall a b. (b -> a -> b) -> b -> a -> [a] -> ([b], b)
-weird f h t xs = go h xs []
-    where go :: b -> [a] -> [b] -> ([b], b)
-          go _ [    ] _   = error "you done goofed"
-          go b (x:[]) acc =
-              let x'   = f b x
-                  acc' = x':acc
-                  t'   = f x' t
-               in (reverse acc', t')
-          go b (x:xs) acc =
-              let x' = f b x
-               in go x' xs (x':acc)
-                
 -- MAIN
-test1 :: String
-test1 = "R 4\n\
-        \U 4\n\
-        \L 3\n\
-        \D 1\n\
-        \R 4\n\
-        \D 1\n\
-        \L 5\n\
-        \R 2\n"
-
-test2 :: String
-test2 = "R 5\n\
-        \U 8\n\
-        \L 8\n\
-        \D 3\n\
-        \R 17\n\
-        \D 10\n\
-        \L 25\n\
-        \U 20\n"
-
 part1 :: [Dir] -> Int
 part1 = S.size . r1Moved . exec1
 

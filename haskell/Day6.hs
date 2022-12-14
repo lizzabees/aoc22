@@ -9,9 +9,9 @@ import System.Environment (getArgs)
 
 -- is any element in the list repeated
 unique :: Eq a => [a] -> Bool
-unique [    ]             = True
-unique (x:xs) | elem x xs = False
-unique (_:xs)             = unique xs 
+unique [    ]               = True
+unique (x:xs) | x `elem` xs = False
+unique (_:xs)               = unique xs 
 
 -- sliding window of n
 slide :: Int -> [a] -> [[a]]

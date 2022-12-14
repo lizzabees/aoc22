@@ -10,6 +10,7 @@ module Main where
 import Control.Monad (guard)
 import Data.Char (ord)
 import Data.List (find,sortOn)
+import Data.Maybe (isJust,isNothing)
 import Data.Vector ((!))
 import System.Environment (getArgs)
 import qualified Data.Vector as V
@@ -40,8 +41,8 @@ above i (x,y) = [getAt i (x,y') | y' <- [y-1,y-2..0]]
 below :: Input -> Point -> [Int]
 below i@Input{height} (x,y) = [getAt i (x,y') | y' <- [y+1..height-1]]
 
-visibleFrom :: Input -> Point -> (NeighborFn) -> Bool
-visibleFrom i p f = maybe True (const False) . find (>= me) $ f i p 
+visibleFrom :: Input -> Point -> NeighborFn -> Bool
+visibleFrom i p f = isNothing . find (>= me) $ f i p 
     where me = getAt i p
 
 -- optimize a bit by checking nearest edges first
@@ -58,9 +59,9 @@ visible _             (0,_)                   = True
 visible _             (_,0)                   = True
 visible Input{width}  (x,_) | x == width  - 1 = True
 visible Input{height} (_,y) | y == height - 1 = True
-visible i p = maybe False (const True) . find check $ nfns
+visible i p = isJust . find check $ nfns
     where nfns = neighborFns i p
-          check f = visibleFrom i p f
+          check = visibleFrom i p
 
 -- takeWhile but we include the first match as well
 takeUntil :: forall a. (a -> Bool) -> [a] -> [a]

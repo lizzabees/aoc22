@@ -48,3 +48,8 @@ executable day8
     import:           base
     main-is:          Day8.hs
     build-depends:    parsec, vector
+
+executable day9
+    import:           base
+    main-is:          Day9.hs
+    build-depends:    containers, mtl, parsec

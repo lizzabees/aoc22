@@ -53,3 +53,8 @@ executable day9
     import:           base
     main-is:          Day9.hs
     build-depends:    containers, mtl, parsec
+
+executable day10
+    import:           base
+    main-is:          Day10.hs
+    build-depends:    mtl, lens, parsec

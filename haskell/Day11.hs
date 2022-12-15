@@ -3,22 +3,25 @@
 build-depends: base, microlens
 ghc-options: -O2
 -}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NamedFieldPuns  #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RankNTypes      #-}
 module Main where
 import Control.Monad (forM_,void)
+import Control.Monad.Primitive
 import Data.Functor (($>))
-import Lens.Micro
-import Lens.Micro.TH (makeLenses)
+import Data.List (sortOn)
+import Data.Ord (Down(..))
+import Data.Sequence ((|>))
 import System.Environment (getArgs)
 import Text.Parsec hiding (parse)
 
 import qualified Control.Monad.ST as ST
 import qualified Data.Sequence as S
 import qualified Data.Vector as V
-import qualified Data.Vector.Mutable as M
+import qualified Data.Vector.Mutable as MV
 
--- Was going to write a whole ass expression lang
--- but:
+-- Was going to write a whole ass expression lang but:
 -- 1. they only assign to 'new'
 -- 2. the only var they use is 'old'
 -- 3. the only ops i see are +/*
@@ -35,22 +38,21 @@ data BinOp = Add | Mul
 
 -- MONKE 🙊
 data Monkey = Monkey
-    { _mItems :: S.Seq Int
-    , _mOp    :: Op
-    , _mTest  :: Int
-    , _mTrue  :: Int
-    , _mFalse :: Int
-    , _mCount :: Int
+    { mItems :: S.Seq Int
+    , mOp    :: Op
+    , mTest  :: Int
+    , mTrue  :: Int
+    , mFalse :: Int
+    , mCount :: Int
     } deriving(Eq,Ord,Show)
 
-makeLenses ''Monkey
-
 -- evaluate the worry level for an item
-eval :: Int -> Op -> Int
-eval old (Op l op r) = 
+-- accept a worry management fn
+eval :: (Int -> Int) -> Int -> Op -> Int
+eval f old (Op l op r) = 
     let l' = val l
         r' = val r
-     in evalOp l' op r' `div` 3
+     in f $ evalOp l' op r'
     where evalOp :: Int -> BinOp -> Int -> Int
           evalOp l Add r = l + r
           evalOp l Mul r = l * r
@@ -62,8 +64,44 @@ eval old (Op l op r) =
 test :: Int -> Int -> Bool
 test worry by = (worry `mod` by) == 0
 
-round :: [Monkey] -> [Monkey]
-round = undefined
+addItem :: Int -> Monkey -> Monkey
+addItem i m@Monkey{mItems} = m{mItems = mItems |> i}
+
+-- hate to leak ST monad type signatures but wygd
+-- having this all in one function was ugly as sin
+throwItem :: PrimMonad m => V.MVector (PrimState m) Monkey
+          -> Int -> Int -> m ()
+throwItem ms to v = MV.modify ms (addItem v) to
+
+-- we have to thread the new worry management
+-- function thru the whole stack sigh. i could probably
+-- do this with reader monad but i don't want to run a
+-- monad stack. also it's still the same thing basically
+runTurn :: PrimMonad m => (Int -> Int)
+        -> V.MVector (PrimState m) Monkey
+        -> Int -> Monkey -> m ()
+runTurn f ms i m@Monkey{..} = do
+    forM_ mItems $ \old -> do
+        let new = eval f old mOp
+        if test new mTest
+           then throwItem ms mTrue  new
+           else throwItem ms mFalse new
+    let cnt = mCount + S.length mItems
+    MV.write ms i $ m{mItems=S.empty, mCount=cnt}
+
+-- run one round of monkey business
+runRound :: (Int -> Int) -> [Monkey] -> [Monkey]
+runRound f ms' = ST.runST $ do
+    ms <- V.thaw . V.fromList $ ms'
+    MV.iforM_ ms $ runTurn f ms
+    V.toList <$> V.freeze ms
+
+runRounds :: (Int -> Int) -> Int -> [Monkey] -> [Monkey]
+runRounds _ 0 ms = ms
+runRounds f n ms = runRounds f (n-1) $ runRound f ms
+
+monkeyBiz :: [Monkey] -> Int
+monkeyBiz = product . take 2 . sortOn Down . map mCount
 
 -- PARSING
 type Parser a = Parsec String () a
@@ -95,9 +133,17 @@ monkeys = manyTill (monkey <* skipMany newline) eof
           true   = string "    If true: throw to monkey " *> num <* newline
           false  = string "    If false: throw to monkey " *> num
 
+-- MAIN
+part1 :: [Monkey] -> Int
+part1 = monkeyBiz . runRounds (flip div 3) 20
+
+part2 :: [Monkey] -> Int
+part2 ms = let k = product . map mTest $ ms
+            in monkeyBiz . runRounds (flip mod k) 10000 $ ms
 
 main :: IO ()
 main = do
     path  <- head <$> getArgs
     input <- parseFile path monkeys
-    forM_ input $ putStrLn . show
+    putStrLn $ mconcat ["part 1: ", show $ part1 input]
+    putStrLn $ mconcat ["part 2: ", show $ part2 input]

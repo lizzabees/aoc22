@@ -63,7 +63,6 @@ executable day11
     import:           base
     main-is:          Day11.hs
     build-depends:    containers
-                    , microlens
-                    , microlens-th
                     , parsec
+                    , primitive
                     , vector

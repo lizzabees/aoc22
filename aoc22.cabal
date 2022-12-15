@@ -58,3 +58,12 @@ executable day10
     import:           base
     main-is:          Day10.hs
     build-depends:    mtl, parsec, vector
+
+executable day11
+    import:           base
+    main-is:          Day11.hs
+    build-depends:    containers
+                    , microlens
+                    , microlens-th
+                    , parsec
+                    , vector

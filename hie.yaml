@@ -10,3 +10,4 @@ cradle:
   - { path: haskell/Day8.hs , component: 'exe:day8'  }
   - { path: haskell/Day9.hs , component: 'exe:day9'  }
   - { path: haskell/Day10.hs, component: 'exe:day10' }
+  - { path: haskell/Day11.hs, component: 'exe:day11' }

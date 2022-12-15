@@ -4,10 +4,7 @@ build-depends: base, parsec
 ghc-options: -O2
 -}
 module Main where
-import Data.Char (isDigit)
-import Data.Either (either)
 import Text.Parsec
-import Text.Parsec.Error
 import System.Environment (getArgs)
 
 type Parser = Parsec String ()

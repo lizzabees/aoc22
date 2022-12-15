@@ -70,7 +70,6 @@ untooth _ = error "untooth: how did you find yourself here?"
 unzip :: Zipper a -> Zipper a
 unzip   (d,  []) = (d, [])
 unzip z@(_, _:_) = unzip . untooth $ z
-unzip _          = error "unzip: bless your heart"
 
 goUp :: Zipper a -> Zipper a
 goUp = untooth

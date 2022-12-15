@@ -22,7 +22,7 @@ data Insn = Noop
           deriving(Eq,Ord,Show)
 
 cycles :: Insn -> Int
-cycles (Noop  ) = 1
+cycles  Noop    = 1
 cycles (Addx _) = 2
 
 data Cpu = Cpu
@@ -36,7 +36,7 @@ cpu isns = Cpu 1 0 $ zip (map cycles isns) isns
 
 -- exec one insn
 exec :: Cpu -> Insn -> Cpu
-exec c            (Noop  ) = c
+exec c             Noop    = c
 exec s@Cpu{_cpuX} (Addx n) = s { _cpuX = _cpuX + n }
 
 -- step through one cpu cycle
@@ -78,7 +78,7 @@ runCrt :: Cpu -> V.Vector Bool
 runCrt c = ST.runST $ do
     pixels <- MV.replicate (40*6) False
     let loop x y c@Cpu{..} =
-            if null $ _cpuIsns
+            if null _cpuIsns
                then V.freeze pixels
                else do
                    when (c `contains` x) $ MV.write pixels (y*40+x) True

@@ -12,6 +12,7 @@ import Lens.Micro.TH (makeLenses)
 import System.Environment (getArgs)
 import Text.Parsec hiding (parse)
 
+import qualified Control.Monad.ST as ST
 import qualified Data.Sequence as S
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as M

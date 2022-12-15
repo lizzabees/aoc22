@@ -13,15 +13,17 @@ import System.Environment (getArgs)
 -- why oh why is this the flip of the ascii order
 -- i am so not doing bit math anymore
 priority :: Char -> Int
-priority = \case
-    c | isAsciiUpper c -> ord c - ord 'A'
-    c | isAsciiLower c -> 1 + ord c - ord 'a'
+priority c | isAsciiUpper c = ord c - ord 'A'
+priority c | isAsciiLower c = 1 + ord c - ord 'a'
+priority _ = error "oops"
 
 -- split a list in half, even on
 -- odd lists because trust issues 😌
 split :: [a] -> ([a],[a])
 split xs = go xs xs []
     where go :: [a] -> [a] -> [a] -> ([a], [a])
+          go [    ] _        _   = error "yikes"
+          go _      [      ] _   = error "ouch"
           go (x:xs) (  _:[]) acc = (reverse $ x:acc, xs)
           go (x:xs) (_:_:[]) acc = (reverse $ x:acc, xs)
           go (x:xs) (_:_:ys) acc = go xs ys $ x:acc

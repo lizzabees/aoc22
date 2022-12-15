@@ -4,13 +4,11 @@ build-depends: base, parsec, vector
 ghc-options: -O2
 -}
 module Main where
-import Control.Monad (forM_)
+import Control.Monad (forM_,void)
 import Data.Functor (($>))
 import Data.List (transpose)
-import Data.Maybe (isJust)
 import System.Environment (getArgs)
 import Text.Parsec
-import Text.Parsec.Char
 
 import qualified Control.Monad.ST as ST
 import qualified Data.Vector as V
@@ -36,18 +34,18 @@ data Move = Move Int Int Int
 
 parseMove :: Parser Move
 parseMove = do
-  string "move "
+  void $ string "move "
   count <- read <$> many1 digit
-  string " from "
+  void $ string " from "
   from <-  read <$> many1 digit
-  string " to "
+  void $ string " to "
   to <- read <$> many1 digit
   return $ Move count (from-1) (to-1)
   
 parseInput :: Parser ([String], [Move])
 parseInput = do
   init <- fmap (map notEmpty . transpose) . count 8 $ crates <* newline
-  count 2 $ manyTill anyChar newline
+  void . count 2 $ manyTill anyChar newline
   moves <- endBy1 parseMove newline
   eof
   return (init, moves)

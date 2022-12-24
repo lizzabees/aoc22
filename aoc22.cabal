@@ -66,3 +66,13 @@ executable day11
                     , parsec
                     , primitive
                     , vector
+
+executable day12
+    import:           base
+    main-is:          Day12.hs
+    build-depends:    data-default
+                    , microlens
+                    , microlens-th
+                    , parsec
+                    , pqueue
+                    , vector

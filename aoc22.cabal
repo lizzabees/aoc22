@@ -70,9 +70,8 @@ executable day11
 executable day12
     import:           base
     main-is:          Day12.hs
-    build-depends:    data-default
-                    , microlens
-                    , microlens-th
+    build-depends:    containers
+                    , microlens-platform
                     , parsec
                     , pqueue
                     , vector

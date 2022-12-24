@@ -8,14 +8,13 @@ ghc-options: -O2
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
 import Control.Monad (guard,void)
+import Control.Monad.ST
 import Data.Char (ord)
 import Data.Vector ((!))
-import Lens.Micro
-import Lens.Micro.TH
+import Lens.Micro.Platform
 import System.Environment (getArgs)
 import Text.Parsec hiding (parse)
 
-import qualified Control.Monad.ST as ST
 import qualified Data.PQueue.Min as PQ
 import qualified Data.Vector as V
 
@@ -61,9 +60,9 @@ data PathFind = PathFind
 
 makeLenses ''PathFind
 
--- returns a list of possible moves with both the
--- distance from the point to the destination and
--- the point coords themselves
+-- returns a list of possible next moves for a
+-- given point, filtering out moves that are off
+-- the map or un-passable
 posMoves :: HeightMap -> Point -> [Point]
 posMoves m@HeightMap{..} p@(x,y) =
     let pIdx = idxAt  m p
@@ -80,7 +79,7 @@ posMoves m@HeightMap{..} p@(x,y) =
 -- heuristic function
 type Hfn = HeightMap -> Point -> Int
 
-astar :: HeightMap -> Hfn -> Maybe [Point]
+astar :: PathFind -> Hfn -> Maybe [Point]
 astar = undefined
             
 -- PARSING
@@ -107,7 +106,7 @@ parseFile n p = parse p n <$> readFile n
 
 heightMap :: Parser PathFind
 heightMap = do
-    heights' <- V.fromList .  concat <$> heights
+    heights' <- V.fromList . concat <$> heights
     ParseState{..} <- getState
     pure $ PathFind (HeightMap heights' _psWidth _psHeight) _psStart _psEnd
         where heights :: Parser [[Int]]

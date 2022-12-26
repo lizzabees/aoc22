@@ -5,10 +5,7 @@ build-depends: base
 ghc-options: -O2
 -}
 module Main where
-import Data.List (sortOn)
 import Data.List.Split (splitOn)
-import Data.Ord (Down(..))
-import System.Environment (getArgs)
 
 elves :: String -> [[Int]]
 elves = map (map read) . splitOn [""] . lines

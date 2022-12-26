@@ -5,10 +5,7 @@ ghc-options: -O2
 -}
 {-# LANGUAGE LambdaCase #-}
 module Main where
-import Data.Char (isAsciiUpper,isAsciiLower,ord)
-import Data.List (intersect)
 import Data.List.Split (chunksOf)
-import System.Environment (getArgs)
 
 -- why oh why is this the flip of the ascii order
 -- i am so not doing bit math anymore

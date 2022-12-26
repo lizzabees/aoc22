@@ -4,8 +4,6 @@ build-depends: base
 ghc-options: -O2
 -}
 module Main where
-import Data.List (tails, transpose)
-import System.Environment (getArgs)
 
 -- is any element in the list repeated
 unique :: Eq a => [a] -> Bool

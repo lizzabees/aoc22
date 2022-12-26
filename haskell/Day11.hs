@@ -8,13 +8,8 @@ ghc-options: -O2
 {-# LANGUAGE RankNTypes      #-}
 module Main where
 import Prelude hiding (Op)
-import Control.Monad (forM_,void)
 import Control.Monad.Primitive
-import Data.Functor (($>))
-import Data.List (sortOn)
-import Data.Ord (Down(..))
 import Data.Sequence ((|>))
-import System.Environment (getArgs)
 import Text.Parsec hiding (parse, (<|>))
 
 import qualified Control.Monad.ST as ST

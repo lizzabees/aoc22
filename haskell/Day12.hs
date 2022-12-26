@@ -8,13 +8,8 @@ ghc-options: -O2
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Main where
-import Control.Monad (guard,void)
-import Data.Bifunctor (bimap)
-import Data.Function (on)
-import Data.Char (ord)
 import Data.Vector ((!))
 import Lens.Micro.Platform
-import System.Environment (getArgs)
 import Text.Parsec hiding (parse)
 
 import qualified Data.Map.Strict as M

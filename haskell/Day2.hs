@@ -4,7 +4,6 @@ build-depends: base
 ghc-options: -main-is Main.main -O2
 -}
 module Main where
-import System.Environment (getArgs)
 
 class Scoring a where
     score :: a -> Int

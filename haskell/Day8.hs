@@ -7,12 +7,8 @@ ghc-options: -O2
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
-import Control.Monad (guard)
-import Data.Char (ord)
-import Data.List (find,sortOn)
-import Data.Maybe (isJust,isNothing)
+import Prelude hiding (left,right)
 import Data.Vector ((!))
-import System.Environment (getArgs)
 import qualified Data.Vector as V
 
 data Input = Input

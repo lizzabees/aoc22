@@ -6,11 +6,6 @@ ghc-options: -O2
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
-import Control.Monad.State
-import Data.Function (on)
-import Data.Functor (($>))
-import Data.List (scanl')
-import System.Environment (getArgs)
 import Text.Parsec hiding (State,parse)
 import qualified Data.Set as S
 

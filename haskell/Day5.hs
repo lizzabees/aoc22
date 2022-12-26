@@ -4,11 +4,7 @@ build-depends: base, parsec, vector
 ghc-options: -O2
 -}
 module Main where
-import Control.Monad (forM_,void)
-import Data.Functor (($>))
-import Data.List (transpose)
-import System.Environment (getArgs)
-import Text.Parsec
+import Text.Parsec hiding ((<|>))
 
 import qualified Control.Monad.ST as ST
 import qualified Data.Vector as V

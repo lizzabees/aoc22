@@ -6,11 +6,8 @@ ghc-options: -O2
 {-# LANGUAGE NamedFieldPuns  #-}
 {-# LANGUAGE RecordWildCards #-}
 module Main where
-import Control.Monad.State
-import Data.Functor ((<&>),($>))
 import Data.Vector ((!))
-import System.Environment (getArgs)
-import Text.Parsec hiding (State,parse)
+import Text.Parsec hiding (State,parse,(<|>))
 
 import qualified Control.Monad.ST as ST
 import qualified Data.Vector.Mutable as MV

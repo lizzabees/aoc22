@@ -10,12 +10,9 @@ ghc-options: -O2
 {-# LANGUAGE TypeFamilies        #-}
 module Main where
 import Prelude hiding (lookup,unzip)
-import Control.Monad.Writer
 import Data.Functor.Foldable
 import Data.Functor.Foldable.TH
-import Data.List (foldl')
-import System.Environment (getArgs)
-import Text.Parsec hiding (parse)
+import Text.Parsec hiding (parse, (<|>))
 
 -- VFS STUFF
 -- we use a phantom type var 'a' here
@@ -45,8 +42,8 @@ lookup k = flip go []
           go (x:xs) acc                  = go xs (x:acc) 
 
 -- insert vfs entry, but don't if it's duplicate
-insert :: forall a. Vfs a -> [Vfs a] -> [Vfs a]
-insert f = flip go []
+insert' :: forall a. Vfs a -> [Vfs a] -> [Vfs a]
+insert' f = flip go []
     where go :: [Vfs a] -> [Vfs a] -> [Vfs a]
           go [] acc = reverse $ f:acc
           go (x:xs) acc | vfsName x == vfsName f = reverse acc ++ x:xs
@@ -63,7 +60,7 @@ type Zipper a = (Vfs a, [Crumb a])
 -- unzip one layer
 untooth :: Zipper a -> Zipper a
 untooth (d@(Dir _ _), Crumb par sibs:cs) =
-    let sibs' = insert d sibs
+    let sibs' = insert' d sibs
      in (Dir par sibs', cs)
 untooth _ = error "untooth: how did you find yourself here?"
 
@@ -92,10 +89,10 @@ navigate (Rel ps) = foldl' (.) id $ map goDown ps
 
 add :: Vfs a -> Zipper a -> Zipper a
 add d@(Dir _ _) (Dir me kids, cs) =
-    let kids' = insert d kids
+    let kids' = insert' d kids
      in (Dir me kids', cs)
 add f@(File _ _) (Dir me kids, cs) =
-    let kids' = insert f kids
+    let kids' = insert' f kids
      in (Dir me kids', cs)
 add _ _ = error "what a horrible night to have a curse"
 

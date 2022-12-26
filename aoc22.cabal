@@ -6,7 +6,7 @@ build-type:         Simple
 extra-doc-files:    CHANGELOG.md
 
 common base
-    build-depends:    base ^>=4.17.0.0
+    build-depends:    rerebase
     default-language: Haskell2010
     ghc-options:      -Wall -Wno-name-shadowing -O2
     hs-source-dirs:   haskell
@@ -33,7 +33,7 @@ executable day4
 executable day5
     import:           base
     main-is:          Day5.hs
-    build-depends:    parsec, vector
+    build-depends:    parsec
 
 executable day6
     import:           base
@@ -42,37 +42,33 @@ executable day6
 executable day7
     import:           base
     main-is:          Day7.hs
-    build-depends:    mtl, recursion-schemes, parsec
+    build-depends:    recursion-schemes, parsec
 
 executable day8
     import:           base
     main-is:          Day8.hs
-    build-depends:    parsec, vector
+    build-depends:    parsec
 
 executable day9
     import:           base
     main-is:          Day9.hs
-    build-depends:    containers, mtl, parsec
+    build-depends:    parsec
 
 executable day10
     import:           base
     main-is:          Day10.hs
-    build-depends:    mtl, parsec, vector
+    build-depends:    parsec
 
 executable day11
     import:           base
     main-is:          Day11.hs
-    build-depends:    containers
-                    , parsec
+    build-depends:    parsec
                     , primitive
-                    , vector
 
 executable day12
     import:           base
     main-is:          Day12.hs
-    build-depends:    containers
-                    , microlens-platform
+    build-depends:    microlens-platform
                     , monad-extras
                     , parsec
                     , pqueue
-                    , vector

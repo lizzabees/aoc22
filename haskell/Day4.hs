@@ -4,8 +4,8 @@ build-depends: base, parsec
 ghc-options: -O2
 -}
 module Main where
+import Prelude hiding (range)
 import Text.Parsec
-import System.Environment (getArgs)
 
 type Parser = Parsec String ()
 

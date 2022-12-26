@@ -31,15 +31,9 @@ makeLenses ''HeightMap
 
 type Point = (Int,Int)
 
--- these are all partial for invalid inputs. whocare
-idxAt :: HeightMap -> Point -> Int
-idxAt HeightMap{_hmWidth} (x,y) = y * _hmWidth + x
-
-valIdx :: HeightMap -> Int -> Int
-valIdx HeightMap{_hmData} = (_hmData !)
-
+-- this is partial for invalid inputs. whocare
 valAt :: HeightMap -> Point -> Int
-valAt m = valIdx m . idxAt m
+valAt HeightMap{_hmData,_hmWidth} (x,y) = _hmData ! y * _hmWidth + x
 
 canMove :: Int -> Int -> Bool
 canMove p p' = p' <= (p + 1)
@@ -52,34 +46,11 @@ data PathFind = PathFind
     } deriving(Eq,Ord,Show)
 makeLenses ''PathFind
 
--- returns a list of possible next moves for a
--- given point, filtering out mkoves that are off
--- the map or un-passable
-posMoves :: HeightMap -> Point -> [Point]
-posMoves m@HeightMap{..} p =
-    let pIdx  = idxAt  m p
-        pVal  = valIdx m pIdx
-        arnd  = [((+x),(+y)) | y <- [-1,1], x <- [-1,1]]
-        nbrs = zipWith (uncurry bimap) arnd $ repeat p
-     in do
-         n@(nx,ny) <- nbrs
-         guard $  nx >= 0 && nx < _hmWidth && ny >= 0 && ny < _hmHeight
-         let nVal = valAt m n
-         let vdel = nVal-pVal
-         guard $ vdel <= 1
-         return n
-
-type CostFn = HeightMap -> Point -> Point -> Int
-type NextPQ = PQ.MinQueue (Int,  Point )
-type VisitM = M.Map Point Node
-
--- manhattan distance
-mdist :: CostFn
-mdist _ (px,py) (dx,dy) = abs (dx-px) + abs (dy-py)
-
 data Node = Node
-    { _noPath :: [Point] -- path back to origin
-    , _noCost :: Int     -- cost so far to here
+    { _noPos  :: Point
+    , _noPath :: [Point] -- path back to origin
+    , _noCost :: Int     -- cost so far 
+    , _noDist :: Int     -- heuristic to dest
     } deriving (Eq,Show)
 makeLenses ''Node
 
@@ -87,17 +58,67 @@ instance Ord Node where
     compare :: Node -> Node -> Ordering
     compare = compare `on` _noCost
 
+-- returns a list of possible next moves for a
+-- given point, filtering out mkoves that are off
+-- the map or un-passable
+neighbors :: PathFind -> Point -> [Point]
+neighbors pf p =
+    let pval = valAt (pf^.pfHeights) (pf^.pfStart)
+        arnd = [((+x),(+y)) | y <- [-1,1], x <- [-1,1]]
+        nbrs = zipWith (uncurry bimap) arnd $ repeat p
+        width  = pf^.pfHeights.hmWidth
+        height = pf^.pfHeights.hmHeight
+     in do
+         n@(nx,ny) <- nbrs
+         guard $ nx >= 0 && nx < width && ny >= 0 && ny < height
+         let nval = valAt (pf^.pfHeights) n
+         let vdel = nval-pval
+         guard $ vdel <= 1
+         return n
+
+type CostFn = PathFind -> Point -> Point -> Int
+
+type Front = PQ.MinQueue Node
+type Visit = M.Map Point Node
+
+-- a* state
+data AState = AState
+    { _asFront :: Front
+    , _asVisit :: Visit
+    } deriving(Show)
+makeLenses ''AState
+
+-- manhattan distance
+mdist :: CostFn
+mdist _ (px,py) (dx,dy) = abs (dx-px) + abs (dy-py)
+
 -- in a* terms, we take the map, g(f) which is a function
 -- calculating cost to move from one point to another and
 -- h(f) which is a heuristic function guessing cost between
 -- two points
 astar :: PathFind -> CostFn -> CostFn -> Maybe [Point]
-astar PathFind{..} gf hf =
-    let cost    = hf _pfHeights _pfStart _pfEnd
-        next    = PQ.singleton (cost, _pfStart)
-        visited = M.empty
-     in go next visited
-    where go = undefined
+astar pf@PathFind{..} gf hf =
+    let dist  = hf pf _pfStart _pfEnd
+        node  = Node _pfStart [] 0 dist
+        front = PQ.singleton node
+        visit = M.singleton _pfStart node
+        state = AState front visit
+     in step state $ Just node
+    where step :: AState -> Maybe Node -> Maybe [Point]
+          step _     Nothing     = Nothing -- we didn't find target
+          step _     (Just curr) | (curr^.noPos) == (pf^.pfEnd) = Just $ path curr
+          step state (Just curr) =
+              let nbrs   = neighbors pf (curr^.noPos)
+                  ncosts = flip map nbrs $ gf pf (curr^.noPos)
+                  ndists = flip map nbrs $ flip (hf pf) (pf^.pfEnd)
+                  npaths = repeat $ path curr
+                  nbrs'  = Node <$> nbrs <*> npaths <*> ncosts <*> ndists
+                  state' = flip execState state $ do
+                      modify . over asFront $ PQ.deleteMin
+                      forM_ nbrs' $ \nbr -> undefined
+               in step state' $ PQ.getMin (state'^.asFront)
+          path :: Node -> [Point]
+          path Node{_noPos,_noPath} = _noPos:_noPath
 
 -- PARSING
 data ParseState = ParseState 

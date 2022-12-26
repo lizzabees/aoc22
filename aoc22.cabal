@@ -72,6 +72,7 @@ executable day12
     main-is:          Day12.hs
     build-depends:    containers
                     , microlens-platform
+                    , monad-extras
                     , parsec
                     , pqueue
                     , vector
